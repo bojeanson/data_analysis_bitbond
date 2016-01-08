@@ -1,0 +1,51 @@
+Project Competitive Machine Learning :
+
+The data are informations on person who wants to borrow money (make a loan). So we know various things on them as their employment condition, their location, their region, their net incomes, the currency of their country, why they want to borrow, etc.
+The data are also giving informations on the terms of the loan, its amount to be funded, the current status of the loan (funded, fully paid back, late, ...), the rate, etc.
+So for each loan we have informations but not at the same stage/step in the loan process.
+But we can guess what happened before for some loan thanks to their status.
+
+So that's the different possible process of loan :
+A. 1st possibility
+1) You ask for a loan (in_funding)
+2) You canceled it (canceled)
+OR
+2bis) You don't get any respond, the loan expired.
+
+B. 2nd possibility
+1) You ask for a bullet loan (in_funding)
+2) You get the money (funded)
+3) You are late in the paying back (late)
+4) You don't pay back at all (default), the charged_off
+OR
+3bis) You get back the money (fully_paid_back)
+
+C. 3rd possibility
+1) You ask for a loan (in_funding)
+2) You get the money (funded)
+3) You paid back a part of the money (current)
+4) You are late in the 2nd paiement, you become late
+5) You paid back all (fully_paid_back)
+(The 3) and 4) stage can repeat)
+
+Problem :
+
+Predict the risk that a loan is going to be paid back on time and in entirety or if the person is going to default.
+
+Various indicators are built on top of the data that the person gives :
+- A nominal interest rate
+- Rates count
+- An amount of money to be loan (amount-funded)
+- A creditworthiness, the ability to pay back the loan on time and in entirety
+
+I need to build other features that take the time of each loan into account, to normalize the data.
+
+In a first time i can check some first things like :
+- Is there a correlation between the location and defaulting (and the funding) ?
+- Does the difference between the amount requested and the amount funded is bigger when the person lives in a certain region, has a certain job (employment), has certain incomes
+- Does there is a correlation betwenn the borrower rating and the amount funded ?
+- Is the time between the demand of loan and the actual time the money is funded more important when your borrower rating is F and not A ?
+- Are all the defaulting loan actually fraudulent ?
+- Is the nominal interest rate higher when the borrower rating is F ?
+
+
