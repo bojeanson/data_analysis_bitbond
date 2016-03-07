@@ -1,0 +1,110 @@
+\documentclass[12pt,twoside]{scrreprt}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+\usepackage[francais]{babel, varioref}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xspace}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{calc}
+\usepackage{listingsutf8}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{afterpage}
+\usepackage[style=verbose-note,backend=bibtex]{biblatex}
+\usepackage{url}
+\usepackage[top=2.1cm,bottom=2.2cm,left=2cm,right=2cm]{geometry}
+\usepackage[final]{pdfpages}
+\usepackage{subcaption}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{mathrsfs}
+\frenchbsetup{StandardLists=true}
+\captionsetup{compatibility=false}
+
+\newcommand{\hlc}[2][yellow]{ {\sethlcolor{#1} \hl{#2}} }
+\newcommand{\highlight}[2][yellow]{\mathchoice%
+  {\colorbox{#1}{$\displaystyle#2$}}%
+  {\colorbox{#1}{$\textstyle#2$}}%
+  {\colorbox{#1}{$\scriptstyle#2$}}%
+  {\colorbox{#1}{$\scriptscriptstyle#2$}}}
+
+\definecolor{gray}{rgb}{0.4,0.4,0.4}
+\definecolor{darkblue}{rgb}{0.0,0.0,0.6}
+\definecolor{cyan}{rgb}{0.0,0.6,0.6}
+
+% Pour sommaire cliquable
+\usepackage{hyperref} % Créer des liens et des signets
+\hypersetup{
+colorlinks=true, %colorise les liens
+breaklinks=true, %permet le retour à la ligne dans les liens trop longs
+urlcolor= blue, %couleur des hyperliens
+linkcolor= black, %couleur des liens internes
+citecolor=black,  %couleur des références
+}
+
+% Fichier de bibliographie
+\bibliography{parties/biblio}
+
+\usepackage{templateINSA}
+\initINSA
+
+% Tirte centre
+\renewcommand\infoBig{Baptiste O'Jeanson}
+\renewcommand\infoSmall{Report of Machine Learning Project}
+
+% Titre bas
+\title{Competitive Machine learning}
+\renewcommand\soustitre{Classifying Default Application for Peer-to-Peer Bitcoin Loans}
+
+% Auteurs
+\author{\textbf{Student:} Baptiste \bsc{O'Jeanson} \\
+	\textbf{Teacher:} Tobias \bsc{Scheffer}\\
+	\textbf{Year:} 2015-2016\\
+	\textbf{Place:} Potsdam University\\}
+
+\begin{document}
+
+% titleINSA : Page de garde
+% #1 : descendre le titre du milieu (en mm)
+% #2 : lien de l'image de fond
+% #3 : décalage sur X de l'image de fond (en mm)
+% #4 : décalage sur Y de l'image de fond (en mm)
+% #5 : largeur de l'image de fond de #5 (en mm)
+% #6 : Crédit de l'image de fond
+ \titleINSA{0}{images/uni_potsdam.png}{0}{100}{220}{}
+
+% Sommaire
+\tableofcontents
+
+% Parties
+\chapter{Introduction}
+\input{parties/01-Introduction.tex}
+
+\chapter{Problem Setting}
+\input{parties/02-ProblemSetting.tex}
+
+\chapter{Features and Classification Models}
+\input{parties/03-ModelAndFeature.tex}
+
+\chapter{Evaluation}
+\input{parties/04-Evaluation.tex}
+
+\chapter{Conclusion}
+\input{parties/05-Conclusion.tex}
+
+% Bibliographie
+%\bibliographystyle{plain}
+\printbibliography
+
+% Annexes
+\clearpage
+\appendix
+\chapter{Annexes}
+\input{parties/06-Annexe.tex}
+
+\end{document}

@@ -43,10 +43,11 @@ def encode_data(data):
     return hotEncoder.fit_transform(data.as_matrix())
 
     
-def text_transformation(initial_data, categorical_feature=['project_description']):
-    tf = CountVectorizer(token_pattern='[a-zA-Z]{3,}',max_df=0.95, min_df=0.002,max_features=2000,stop_words='english')
+def text_transformation(initial_data, y, categorical_feature=['project_description']):
+    tf = CountVectorizer(token_pattern='[a-zA-Z]{3,}',max_df=0.95, min_df=0.002,
+                         max_features=2000, stop_words='english')
     serie = initial_data[categorical_feature[0]]
-    articles_words = tf.fit_transform(serie.to_dict().values())
+    articles_words = tf.fit_transform(serie.to_dict().values(), y)
     word_index = tf.get_feature_names()
     K = 20
     lda = LatentDirichletAllocation(n_topics=K, max_iter=10, learning_method='online', learning_offset=10.,
@@ -55,7 +56,7 @@ def text_transformation(initial_data, categorical_feature=['project_description'
     new_feature = lda.fit_transform(articles_words)
     print("done in %0.3fs." % (time() - t0))
     new_feature = pd.DataFrame(new_feature)
-    return re_assemble_dataset(initial_data, new_feature, categorical_feature)
+    return re_assemble_dataset(initial_data, new_feature, categorical_feature), lda
 
 
 #if __name__ == '__main__':
