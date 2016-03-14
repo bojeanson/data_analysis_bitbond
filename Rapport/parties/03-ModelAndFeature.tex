@@ -1,3 +1,249 @@
 \section{Feature engineering}
+\label{sec:feature_engi}
+	The features from Bitbond that we kept for the estimation of the risk are the following :
+	\begin{itemize}[font=\footnotesize]
+		\item We kept six categorical features which are :
+		\begin{itemize}[font=\footnotesize]
+			\item the term of the loan that takes five distinct values : 'term\_12\_months', 'term\_36\_months', 'term\_60\_months', 'term\_6\_months' and 'term\_6\_weeks'.
+			\item the social media connections between the borrower and the Bitbond page that are booleans : linkedin, facebook, twitter, paypal and ebay.
+		\end{itemize}
+		\item We kept three numerical features :
+		\begin{itemize}
+			\item the location of the borrower on Earth ('address\_lat' and 'address\_lng').
+			\item the net incomes in cents made by the borrower in a month ('net\_income\_cents').
+		\end{itemize}
+		\item We kept a textual feature the free text project description that looks like this :\\
+		`I need to make some investments but need to complement the capital, this loan will cover the expenses. Just sit back and enjoy the monthly payments.'
+		\item We kept a time feature : the date of application of the loan.
+	\end{itemize}
+
+	\subsection{Dealing with categorical feature}
+		We used the \href{http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.LabelEncoder.html}{LabelEncoder} from \textit{scikit-learn} to encode the categorical features as follows :
+		\usemintedstyle{tango}
+		\begin{minted}[bgcolor=white]{python}
+>>> from sklearn.preprocessing import LabelEncoder
+>>> le = LabelEncoder()
+>>> le.fit(["paris", "paris", "tokyo", "amsterdam"])
+LabelEncoder()
+>>> list(le.classes_)
+['amsterdam', 'paris', 'tokyo']
+>>> le.transform(["tokyo", "tokyo", "paris"])
+array([2, 2, 1]...)
+>>> list(le.inverse_transform([2, 2, 1]))
+['tokyo', 'tokyo', 'paris']
+		\end{minted}
+
+		After transforming the categorical features, we used \href{http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.OneHotEncoder.html}{OneHotEncoder} from \textit{scikit-learn} to encode the categorical integer features (produced by the \href{http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.LabelEncoder.html}{LabelEncoder}) into binary features using a one-hot aka one-of-K scheme. This encoding is needed for feeding categorical data to many \textit{scikit-learn} estimators, notably linear models and SVMs with the standard kernels.
+		\usemintedstyle{tango}
+		\begin{minted}[bgcolor=white]{python}
+>>> from sklearn.preprocessing import OneHotEncoder
+>>> enc = OneHotEncoder()
+>>> enc.fit([[0, 0, 3], [1, 1, 0], [0, 2, 1], [1, 0, 2]])
+OneHotEncoder(categorical_features='all', dtype=<... 'float'>,
+       handle_unknown='error', n_values='auto', sparse=True)
+>>> enc.n_values_
+# Maximum number of values per feature
+array([2, 3, 4])
+>>> enc.transform([[0, 1, 1]]).toarray()
+# 2 columns to encode 0 and 1 for 1st feature,
+# 3 columns to encode 0, 1 or 2 for 2nd feature
+# and 4 columns to encode 0, 1, 2 or 3 for 3rd feature
+array([[ 1.,  0.,  0.,  1.,  0.,  0.,  1.,  0.,  0.]])
+		\end{minted}
+
+		In the dataset of 608 loans based on the status that we kept ('defaulted', 'fully\_paid', 'charged\_off' or 'late\_90'), the feature term takes only four distinct values ('term\_60\_months' never present). By transforming the feature term we obtain four binary features. By transforming the five social media connection features we obtained per feature two binary new feature. At the end, we obtained a matrix of 608 raws by 14 columns that can be used for classification.
+
+	\subsection{Dealing with numerical feature}
+		An other very interesting feature should have been the borrower's net income in local currency. The main issue with that feature was that it is based on the local currency. So using it like this was nonsense, we had to normalize it in order to have an idea of their incomes on a common basis.\\
+
+		A way to tackle this problem was to use two other features provided by Bitbond : the borrower's location (latitude and longitude). Those one can get us additional features on the borrower region like the cost of living or the standard of living thanks to API like Numbeo or Google. We used the Numbeo API to get the ``Average Monthly Disposable Salary'' of each distinct regions present in the dataset. After getting this new information, we used it to divide the borrower's net income in local currency to create a ratio that should be comparable between the borrowers. We called that feature 'salary'.\\
+
+		The main issue with that procedure was that it cost a huge amount of time, moreover the currencies are not all matching between Bitbond and Numbeo. It produced ratio that can be biased and to find them we have to check borrower by borrower their local currency, their region and their location if they gave one. Because sometimes borrowers are living in a region like Namibia, their currency given by Bitbond is the one of Namibia, but the one given by Numbeo is the one of South Africa.\\
+
+		After checking the more we could (or the most we thought of), we added this ratio in our list of features (matrix of 608 raws by 15 columns).
+
+	\subsection{Dealing with textual feature}
+		The free text project description could not be used as it is given. We had to do some text processing before doing anything of it. In fact, raw data, sequence of symbols cannot be fed directly to the \textit{scikit-learn}'s algorithms as most of them expect numerical feature vectors with a fixed size rather than the raw text documents with variable length. We describe below the text processing pipeline that we created.
+
+		\paragraph{Tokenization}
+			First of all, we had to tokenize the text into token. To do so, we first needed to tokenize the text into list of sentences. Then we had to tokenize the sentences into list of tokens. Hopefully, there is a python library named \href{http://www.nltk.org/}{\textit{Natural Language Toolkit}} that provides several tools to do text processing. Below you can see an example of the tokenization process :
+			\begin{minted}[numberblanklines=true,showspaces=false,breaklines=true,bgcolor=white]{python}
+>>> project_description = "I need to make some investments but need to complement the capital, this loan will cover the expenses. Just sit back and enjoy the monthly payments"
+>>> Tokenizer().tokenize(project_description)
+[['I', 'need', 'to', 'make', 'some', 'investments', 'but', 'need', 'to', 'complement', 'the', 'capital', ',', 'this', 'loan', 'will', 'cover', 'the', 'expenses', '.'], ['Just', 'sit', 'back', 'and', 'enjoy', 'the', 'monthly', 'payments']]
+			\end{minted}
+
+		\paragraph{Part-of-Speech Tagging}
+			After tokenizing, we computed the Part-of-Speech Tagging (that helps for the lemmatization). It means to find for each word of each sentence its grammatical function : verb, noun, adjective, adverb, pronoun, etc. Here is an example :
+			\begin{minted}[numberblanklines=true,showspaces=false,breaklines=true,bgcolor=white]{python}
+>>> tokenized_sentences = [['I', 'need', 'to', 'make', 'some', 'investments', 'but', 'need', 'to', 'complement', 'the', 'capital', ',', 'this', 'loan', 'will', 'cover', 'the', 'expenses', '.'], ['Just', 'sit', 'back', 'and', 'enjoy', 'the', 'monthly', 'payments']]
+>>> Tagger().tag_sentences(tokenized_sentences)
+[[('I', 'PRP'), ('need', 'VBP'), ('to', 'TO'), ('make', 'VB'), ('some', 'DT'), ('investments', 'NNS'), ('but', 'CC'), ('need', 'VBP'), ('to', 'TO'), ('complement', 'VB'), ('the', 'DT'), ('capital', 'NN'), (',', ','), ('this', 'DT'), ('loan', 'NN'), ('will', 'MD'), ('cover', 'VB'), ('the', 'DT'), ('expenses', 'NNS'), ('.', '.')], [('Just', 'RB'), ('sit', 'PRP'), ('back', 'RB'), ('and', 'CC'), ('enjoy', 'VBP'), ('the', 'DT'), ('monthly', 'JJ'), ('payments', 'NNS')]]
+			\end{minted}
+
+		\paragraph{Lemmatization}
+			Now that we had the Part-of-Speech Tagging of each word, we could find the lemma of each one of them. Before doing that, we had to normalize the Part-of-Speech Tagging to limit them to verb, noun, adjective and adverb because the lemmatizer of the \href{http://www.nltk.org/}{\textit{Natural Language Toolkit}} accept only those four tags. Each word that is neither a verb, an adjective nor an adverb are tagged as noun. Why ? Because by just choosing NN  (noun) for every tag, we can achieve 14\% accuracy testing on one-fourth of the treebank corpus. With JJ (adjective) we get only 5\%. Below you can see the result of the PoS Tagging normalization as input of the lemmatizer and the result of the lemmatization :
+			\begin{minted}[numberblanklines=true,showspaces=false,breaklines=true,bgcolor=white]{python}
+>>> postagged_sentences = [[('I', 'n'), ('need', 'v'), ('to', 'n'), ('make', 'v'), ('some', 'n'), ('investments', 'n'), ('but', 'n'), ('need', 'v'), ('to', 'n'), ('complement', 'v'), ('the', 'n'), ('capital', 'n'), (',', 'n'), ('this', 'n'), ('loan', 'n'), ('will', 'n'), ('cover', 'v'), ('the', 'n'), ('expenses', 'n'), ('.', 'n')],[('Just', 'r'), ('sit', 'n'), ('back', 'r'), ('and', 'n'), ('enjoy', 'v'), ('the', 'n'), ('monthly', 'a'), ('payments', 'n')]]
+>>> Lemmatizer().lemmatize(postagged_sentences)
+[['I', 'need', 'to', 'make', 'some', 'investment', 'but', 'need', 'to', 'complement', 'the', 'capital', ',', 'this', 'loan', 'will', 'cover', 'the', 'expense', '.'], ['Just', 'sit', 'back', 'and', 'enjoy', 'the', 'monthly', 'payment']]
+			\end{minted}
+			We lemmatized every text project description to normalize the vocabulary used by the borrower to limit the sparsity of the vocabulary. (Remark : we could also have done some stemming after the lemmatization to reduct again the vocabulary.)
+
+		\paragraph{Remove stopwords \& puntuation, and transform into bag-of-words modeling}
+			Lastly, we just removed the stopwords\footnote{Stopwords are common words that generally do not contribute to the meaning of a sentence, at least for the purposes of information retrieval and natural language processing. These are words such as the and a.}, the punctuation (with regular expression) and we used the \href{http://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html}{CountVectorizer} of \textit{scikit-learn} to transform our list of words into the bag-of-words representation. Below is an example of this representation :
+			\begin{minted}[numberblanklines=true,showspaces=false,breaklines=true,bgcolor=white]{python}
+>>> project_description1 = "I want to borrow bitcoins to finish the construction of my house."
+>>> project_description2 = "I intend to borrow bitcoins to build me a new house."
+>>> list_of_description = [project_description1, project_description2]
+>>> cv = CountVectorizer()
+>>> cv.fit(list_of_description)
+>>> cv.vocabulary_
+{'bitcoins': 0, 'borrow': 1, 'build': 2, 'construction': 3, 'finish': 4, 'house': 5, 'intend': 6, 'me': 7, 'my': 8, 'new': 9, 'of': 10, 'the': 11, 'to': 12, 'want': 13}
+>>> cv.transform(list_of_description).todense()
+matrix([[1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 2, 1],
+        [1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 2, 0]])
+			\end{minted}
+		We built a project description word matrix by pruning the vocabulary of words such that it only contained words that :
+		\begin{itemize}
+			\item Have latin characters and are of length 3 or more characters (token\_pattern='[a-zA-Z]{3,}').
+			\item Occur in at least 0.2\% of all documents and at most 95\% of all documents (max\_df=0.95, min\_df=0.002).
+		\end{itemize}
+		Out of these using the 2000 most frequent words.\\
+
+		The project description word frequency matrix (or bag-of-words representation) is a 2D array where rows represent project descriptions and columns represent words and each cell counts how many times the specific word appears in a given project description. Now that we had the text project description into the bag-of-words representation, we could use it as input of a latent Dirichlet allocation (LDA) model to discover the topics prevalent in the project description collection, and assign topics to the project descriptions.
+
+		\paragraph{Latent Dirichlet Allocation}
+			An LDA model describes each topic in terms of a distribution over words, and each project description as a distribution over topics. The problem setting is unsupervised in the sense that only the text in the project descriptions is observed, and all other variables are latent and need to be inferred by the model.
+			LDA is a bag-of-words model, meaning that the probabilistic process for a project description does not take into account the order in which the words appear in a project description. This means that for performing inference with the LDA model, it suffices to know which words appear in a project description and how often each word appears. Therefore we will pass the bag-of-words representation of the project descriptions as input.\\
+
+			Using \href{http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.LatentDirichletAllocation.html}{LatentDirichletAllocation} from \textit{scikit-learn}, we trained a LDA model with $K=20$ topics on the project descriptions collection using the project description word frequency matrix (or bag-of-words representation). The new matrix produced by this model has size 608 loans by 20 the probability of each topics in each project description.\\
+
+			To use this new matrix as well as the one of the categorical features, we just concatenate them : it results a 608 by 35 matrix.
+
+
+	\subsection{Dealing with time feature}
+		In order to keep some context in our dataset, we used the date of publication of the loan (published\_at feature). This date is a string formatted as following :
+		\begin{minted}[numberblanklines=true,showspaces=false,breaklines=true,bgcolor=white]{python}
+'2013-06-21 15:24:55 +0200'
+		\end{minted}
+		The date could not be used like this. The idea was to convert it in term of number of days past since the earliest date in time of publication of a loan. To do so we first had to extract each string representing the date and to convert it to datetime format. Then we just had to subtract each date to the earliest one in time and to convert that difference in term of the number of day.
+		\paragraph{Convert the date time into datetime format}
+			Hopefully for us, pandas proposes some methods and functions to do this conversion :
+		\begin{minted}[numberblanklines=true,showspaces=false,breaklines=true,bgcolor=white]{python}
+>>> published_date = data['published_at']
+# First we have to split the string to drop the 3rd part
+>>> splited_date = published_date.str.rsplit(' ', expand=True, n=1)
+>>> splited_date.ix[0]
+0    2013-06-21 15:24:55
+1                  +0200
+Name: 0, dtype: object
+# Then we drop the 2nd column that contains the third part
+>>> new_date = published_date.drop(1, axis=1)
+>>> new_date.ix[0]
+0    2013-06-21 15:24:55
+Name: 0, dtype: object
+>>> datetime_published = to_datetime(published_date[0], format='\%Y-\%m-\%d \%H:\%M:\%S')
+>>> datetime_published.ix[0]
+Timestamp('2013-06-21 15:24:55')
+		\end{minted}
+
+		\paragraph{Extract the earliest date in time and subtract it to the other}
+		Now that our feature date of publication was of type \textit{pandas.tslib.Timestamp}, we could extract the earliest date in time, subtract it to all other date of publication and transform the resulting date into the number day as following :
+		\begin{minted}[numberblanklines=true,showspaces=false,breaklines=true,bgcolor=white]{python}
+# Extraction of the earliest date in time
+>>> first_date = published_date.first.im_self[0]
+>>> first_date
+Timestamp('2013-06-21 15:24:55')
+# Subtracting the date and get the result in a month number basis
+>>> data['time_since_published'] = (published_date - first_date).dt.days
+		\end{minted}
+		We could now use it like this as an indicator of context for the classification. In fact, maybe in a period of economic crisis people may intend to be less honest and default more than in prosperity time.\\
+
+		To use this new feature, we just concatenate it to the previous matrix of categorical features and LDA features : it results a 608 by 36 matrix.
+
+
+	\subsection{The other features provided by Bitbond}
+		We were curious to see if there was a link between defaulting and the location on earth, but we noticed on figure \ref{fig:loc_def} that there is none. So we decided not to use the location features (latitude and longitude).\\
+
+		Concerning the other features, they do not bring any improvement in the classification, except the number of rates already paid. The improvement makes sense but using it not, because it is like using the status as a feature since when a borrower did not paid back it will take each time the value zero. The funding time of the loan is also not usable since at the application time we do not have it.\\
+
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=\textwidth]{images/loc_def.png}
+			\caption{In red we can see the borrower's location that actually defaulted and in blue paid back.}
+			\label{fig:loc_def}
+		\end{figure}
 
 \section{Classification models}
+\label{sec:models}
+	We have to build a model that maps the space of loans to the space of predictions : $$f_\theta:\mathcal{X}\rightarrow \mathcal{Y}$$
+
+	We are doing probabilistic classification. The most obvious model to use, is the Logistic Regression. \textit{scikit-learn} also provides SVMs that can produce probabilities. Those are the two models that we used.
+
+	\subsection{Logistic Regression}
+		First a short reminder on the Logistic Regression, here is a quote from \href{http://scikit-learn.org/stable/modules/linear_model.html#logistic-regression}{scikit-learn} about logistic regression :\\
+
+		Logistic regression, despite its name, is a linear model for classification rather than regression. Logistic regression is also known in the literature as logit regression, maximum-entropy classification (MaxEnt) or the log-linear classifier. In this model, the probabilities describing the possible outcomes of a single trial are modeled using a logistic function.\\
+
+		As an optimization problem, binary class L2 penalized logistic regression minimizes the following cost function:
+		$$\underset{w,c}{min}\frac{1}{2}w^\intercal w+C\sum_{i=1}^{n}\log{(\exp{(-y_i(X^\intercal_{i} w+c))}+1)}.$$
+	\subsection{Support Vector Machine}
+	\label{ssec:svm}
+		A short reminder on the SVM, here is a quote from \href{http://scikit-learn.org/stable/modules/svm.html}{scikit-learn} about SVM :\\
+
+		A support vector machine constructs a hyper-plane or set of hyper-planes in a high or infinite dimensional space, which can be used for classification. Intuitively, a good separation is achieved by the hyper-plane that has the largest distance to the nearest training data points of any class (so-called functional margin), since in general the larger the margin the lower the generalization error of the classifier.
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=\textwidth]{images/hyperplane.png}
+			\label{fig:hyperplane}
+		\end{figure}
+
+		Given training vectors $x_i \in \mathbb{R}^p$, $i=1,..., n$, in two classes, and a vector $y \in \{1, -1\}^n$, SVC solves the following primal problem :
+		\begin{equation*}
+			\begin{aligned}
+				& \underset{w,b,\zeta}{min}
+				& & \frac{1}{2}w^\intercal w+C\sum_{i=1}^{n}\zeta_i \\
+				& subject~to
+				& & y_i(w^\intercal \phi(x_i)+b) \geq 1-\zeta_i\\
+				& & & \zeta_i \geq 0,i=1,\ldots,n
+			\end{aligned}
+		\end{equation*}
+
+		When the constructor option probability is set to True, class membership probability estimates (from the methods predict\_proba and predict\_log\_proba) are enabled. In the binary case, the probabilities are calibrated using Platt scaling: logistic regression on the SVM’s scores, fit by an additional cross-validation on the training data.\\
+
+		Needless to say, the five-fold cross-validation involved in Platt scaling is an expensive operation for large datasets.\\
+
+		For the classification task we built a \href{http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html#sklearn.linear_model.LogisticRegression}{Logistic Regression} model and a \href{http://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html#sklearn.svm.SVC}{SVC} model with those parameters :
+		\begin{minted}[bgcolor=white]{python}
+logic_reg = LogisticRegression()
+svc = SVC(kernel='linear', probability=True)
+		\end{minted}
+		Remark : The Logistic regression model is based on the same library (liblinear) as SVC model.
+
+	\subsection{Matrix dimensionality reduction}
+		Because the computation of the probabilities by the SVM is very slow (due to internal five-fold cross validation), we used dimensionality reduction model to reduce the dimension of the input matrix. We tried several models and especially : (kernel) Principal Component Analysis, t-SNE and Linear Discriminant Analysis.\\
+
+		In figures \ref{fig:kpca}, \ref{fig:tsne} and \ref{fig:lda} are respectively visible the result of kernel PCA (with rbf kernel), of t-SNE and of LDA with two components.\\
+
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=0.9\textwidth]{images/kpca.png}
+			\caption{Dimensionality reduction : kernel PCA (rbf kernel) with two components.}
+			\label{fig:kpca}
+		\end{figure}
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=0.9\textwidth]{images/tsne.png}
+			\caption{Dimensionality reduction : t-SNE with two components.}
+			\label{fig:tsne}
+		\end{figure}
+		\begin{figure}[h]
+			\centering
+			\includegraphics[width=0.9\textwidth]{images/lda.png}
+			\caption{Dimensionality reduction : Linear Discriminant Analysis with two components.}
+			\label{fig:lda}
+		\end{figure}
+		We can say that the results of kernel PCA and t-SNE with two components are not as good as the result of LDA which outputs the data points of each labels not mixed up. The input data of those models are the matrix produced after the feature engineering work done in the last part : a matrix of size $(608,36)$.\\
+
+		For each model, we tried more than two components (the number of components for dimensionality reduction) and also other kernel (for kernel PCA), but the results makes the next task (the estimation of the risk) producing worse log loss results. Moreover the first two components of the kernel PCA explained variance 98.9\% of the variance.

@@ -1,11 +1,11 @@
 all: compile clean
 
 compile:
-	pdflatex rapport.tex
-	pdflatex rapport.tex
+	pdflatex -shell-escape rapport.tex
+	pdflatex -shell-escape rapport.tex
 	bibtex rapport
-	pdflatex rapport.tex
-	pdflatex rapport.tex
+	pdflatex -shell-escape rapport.tex
+	pdflatex -shell-escape rapport.tex
 	
 clean:
 	rm *.aux 2>/dev/null; true

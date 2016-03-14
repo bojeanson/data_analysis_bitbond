@@ -1,0 +1,11 @@
+To conclude, the main difficulties to handle concerns the feature engineering and especially the different currencies. In fact it is very hard to normalize the incomes of the borrower on a common basis. Maybe a solution would be to fix a threshold and transform the incomes into a categorical feature. Moreover, identifying the outliers among the borrowers is also not obvious at all, since there is no real criterion to use.\\
+
+Categorical features stay easier to use than numerical ones because there is no normalization to do like with numerical one.\\
+
+Including a temporal feature like we did by using the date of publication of the loan is helping very nicely the estimation of the risk of default, thanks to the inclusion of some contextual information into the dataset.\\
+
+Some improvement tracks could be the following :
+\begin{itemize}
+	\item Use the lending club data to get some additional data on the loans and the borrowers.
+	\item Model the loan borrow as a Markov model (with a 6 months period for instance) and in each step of the Markov process evaluate the risk.
+\end{itemize}

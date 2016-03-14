@@ -5,7 +5,6 @@
 \usepackage{textcomp}
 \usepackage[francais]{babel, varioref}
 \usepackage{graphicx}
-\usepackage{listings}
 \usepackage{xspace}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -23,8 +22,20 @@
 \usepackage{amsmath}
 \usepackage{array}
 \usepackage{mathrsfs}
+\usepackage{hyperref} % Créer des liens et des signets
+\usepackage{templateINSA}
+\usepackage{minted}
+\usepackage{tcolorbox}
+\usepackage{etoolbox}
+
+\BeforeBeginEnvironment{minted}{\begin{tcolorbox}}
+\AfterEndEnvironment{minted}{\end{tcolorbox}}
+
 \frenchbsetup{StandardLists=true}
 \captionsetup{compatibility=false}
+
+\renewcommand{\labelitemi}{$\bullet$}
+\renewcommand{\labelitemii}{$\bullet$}
 
 \newcommand{\hlc}[2][yellow]{ {\sethlcolor{#1} \hl{#2}} }
 \newcommand{\highlight}[2][yellow]{\mathchoice%
@@ -37,8 +48,10 @@
 \definecolor{darkblue}{rgb}{0.0,0.0,0.6}
 \definecolor{cyan}{rgb}{0.0,0.6,0.6}
 
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{12} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{12}  % for normal
+
 % Pour sommaire cliquable
-\usepackage{hyperref} % Créer des liens et des signets
 \hypersetup{
 colorlinks=true, %colorise les liens
 breaklinks=true, %permet le retour à la ligne dans les liens trop longs
@@ -50,7 +63,6 @@ citecolor=black,  %couleur des références
 % Fichier de bibliographie
 \bibliography{parties/biblio}
 
-\usepackage{templateINSA}
 \initINSA
 
 % Tirte centre
@@ -100,11 +112,5 @@ citecolor=black,  %couleur des références
 % Bibliographie
 %\bibliographystyle{plain}
 \printbibliography
-
-% Annexes
-\clearpage
-\appendix
-\chapter{Annexes}
-\input{parties/06-Annexe.tex}
 
 \end{document}
